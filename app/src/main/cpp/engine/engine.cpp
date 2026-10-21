@@ -80,6 +80,15 @@ void Synth303::noteOn(int noteNumber, int velocity) noexcept {
 
     accentLedActive_ = isAccented;
     env_.noteOn(isAccented, isLegato);
+
+    // A repeated note-on for a pitch that is already held must move that entry
+    // to the top instead of stacking duplicates: duplicates would never be
+    // released by the matching note-off and the voice would decay forever.
+    noteStack_.erase(std::remove_if(noteStack_.begin(), noteStack_.end(),
+                                    [noteNumber](const ActiveNote& note) {
+                                        return note.note == noteNumber;
+                                    }),
+                     noteStack_.end());
     if (noteStack_.size() >= 128) noteStack_.erase(noteStack_.begin());
     noteStack_.push_back(ActiveNote{noteNumber, velocity});
 }

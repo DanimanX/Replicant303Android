@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -265,6 +266,129 @@ void testEnginePresets() {
     check(engine.capturePreset().pattern == generated.pattern, "GEN loads the generated pattern");
 }
 
+void testPresetSwitchKeepsTheVoiceAlive() {
+    // Regression: the step trigger used to write its events at the start of the
+    // shared event buffer, overwriting the note-off emitted by the reset that a
+    // preset load requests. The voice then kept a stuck note, every later
+    // note-on was treated as legato and the section faded out.
+    const int banks[] = {0, 1, 3, 5, 0, 7};
+    const int slots[] = {23, 17, 0, 16, 13, 20};
+    const char* names[] = {"A/24", "B/18", "D/01", "F/17", "A/14", "H/21"};
+
+    r303::Engine engine;
+    engine.prepare(48000.0, 512);
+    engine.setMidiOutEnabled(false);
+    engine.setClockSend(false);
+    engine.setTransportSend(false);
+
+    const int barFrames = static_cast<int>(std::lround(60.0 / 142.0 * 4.0 * 48000.0));
+    std::vector<float> buffer(512 * 2, 0.0f);
+
+    for (int section = 0; section < 6; ++section) {
+        engine.loadFactoryPreset(banks[section], slots[section]);
+        engine.setTempo(142.0);
+        engine.setPlaying(true);
+
+        double firstEnergy = 0.0;
+        double lastEnergy = 0.0;
+        int rendered = 0;
+        for (int bar = 0; bar < 4; ++bar) {
+            double energy = 0.0;
+            long count = 0;
+            for (int chunk = 0; chunk < barFrames; chunk += 512) {
+                const int frames = std::min(512, barFrames - chunk);
+                engine.process(buffer.data(), frames, 0);
+                for (int i = 0; i < frames; ++i) {
+                    energy += static_cast<double>(buffer[static_cast<size_t>(i) * 2]) *
+                              buffer[static_cast<size_t>(i) * 2];
+                    ++count;
+                }
+            }
+            const double rms = std::sqrt(energy / static_cast<double>(count));
+            if (bar == 0) firstEnergy = rms;
+            lastEnergy = rms;
+            rendered += barFrames;
+        }
+        check(rendered > 0, "section renders");
+        check(lastEnergy > 0.005, std::string("voice stays audible after switching to ") +
+                                      names[section]);
+        const double ratio = lastEnergy / std::max(1.0e-9, firstEnergy);
+        check(ratio > 0.45, std::string("level does not collapse in ") + names[section]);
+        check(engine.heldNotes() <= 1, std::string("no stuck notes in ") + names[section]);
+    }
+}
+
+void testRepeatedNoteOnReleasesTheVoice() {
+    // Live "double tap" on one pitch: the second note-on replaces the first
+    // stack entry, so the single note-off that follows still releases the
+    // voice. With duplicate entries the release only pops one of them and the
+    // tone sustains forever.
+    r303::Engine engine;
+    engine.prepare(48000.0, 512);
+    engine.setPlaying(false);
+    engine.setParam(r303::kParamDistActive, 0.0f);
+    engine.setParam(r303::kParamDecay, 0.30f);
+    engine.setParam(r303::kParamCutoff, 1400.0f);
+
+    std::vector<float> buffer(512 * 2, 0.0f);
+    const auto render = [&engine, &buffer](int blocks) {
+        double energy = 0.0;
+        for (int b = 0; b < blocks; ++b) {
+            engine.process(buffer.data(), 512, 0);
+            for (float value : buffer) energy += static_cast<double>(value) * value;
+        }
+        return std::sqrt(energy / (static_cast<double>(blocks) * 512.0 * 2.0));
+    };
+
+    engine.noteOn(36, 90);
+    const double held = render(40);
+    engine.noteOn(36, 90);  // repeated press on the same pitch
+    engine.noteOff(36);     // the one and only release
+    render(80);             // let the release finish
+    const double tail = render(80);
+
+    check(held > 0.01, "repeated note is audible while held");
+    check(tail < held * 0.05, "one note-off releases a doubled note-on");
+}
+
+void testResetReleasesHeldNote() {
+    r303::Sequencer sequencer;
+    sequencer.prepare(48000.0);
+    sequencer.setTempo(142.0);
+
+    r303::Pattern pattern;
+    for (auto& step : pattern.steps) {
+        step.gate = true;
+        step.note = 36;
+        step.accent = false;
+        step.slide = false;
+    }
+    sequencer.setPattern(0, pattern);
+    sequencer.setCurrentPattern(0);
+    sequencer.start();
+
+    bool started = false;
+    for (int i = 0; i < 16 && !started; ++i) {
+        r303::Sequencer::Event events[4]{};
+        const int count = sequencer.tick(events);
+        for (int e = 0; e < count; ++e) started = started || events[e].noteOn;
+    }
+    check(started, "sequence starts");
+
+    // While a step is sounding, a preset load asks for a reset. The very next
+    // tick must emit its note-off, even though it also triggers step 0 again.
+    // The buffer is zeroed so an unwritten slot can never be read as an event:
+    // that is exactly how the overwrite bug used to hide.
+    sequencer.requestReset();
+    r303::Sequencer::Event resetEvents[4]{};
+    const int resetCount = sequencer.tick(resetEvents);
+    check(resetCount == 2, "reset release and restart both survive in the buffer");
+    check(!resetEvents[0].noteOn && resetEvents[0].note == 36,
+          "reset emits the release for the held note first");
+    check(resetEvents[1].noteOn && resetEvents[1].note == 36,
+          "reset then restarts the pattern");
+}
+
 void testMidiOutClock() {
     r303::Engine engine;
     engine.prepare(48000.0, 512);
@@ -351,6 +475,9 @@ int main() {
     testSwing();
     testDspAndPresets();
     testEnginePresets();
+    testPresetSwitchKeepsTheVoiceAlive();
+    testRepeatedNoteOnReleasesTheVoice();
+    testResetReleasesHeldNote();
     testMidiOutClock();
     testExternalClock();
     testCcControl();

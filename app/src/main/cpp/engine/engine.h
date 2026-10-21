@@ -82,6 +82,7 @@ public:
     bool slideActive() const noexcept { return slideLedActive_; }
     bool accentActive() const noexcept { return accentLedActive_; }
     int lastNote() const noexcept { return lastNoteNumber_; }
+    int heldNotes() const noexcept { return static_cast<int>(noteStack_.size()); }
 
 private:
     struct ActiveNote {
@@ -170,6 +171,7 @@ public:
     void getScope(float* out, int count) const;
     float meter() const;
     int sampleRate() const { return static_cast<int>(sampleRate_); }
+    int heldNotes() const { return synth_.heldNotes(); }
 
 private:
     struct MidiInRecord {

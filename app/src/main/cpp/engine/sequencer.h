@@ -51,9 +51,15 @@ public:
     bool isWaitingForClock() const noexcept;
     void requestReset() noexcept;
 
+    // Upper bound on the events any single tick/clock/transport call emits.
+    static constexpr int kMaxEventsPerCall = 2;
+
     // Advances one sample on the internal clock and handles gate release.
     // In external-clock mode it only advances the gate countdown; steps are
     // driven by clockPulse().
+    //
+    // Every entry point below writes at most two events per call and never
+    // beyond that, so callers must pass a buffer of at least kMaxEventsPerCall.
     int tick(Event* out) noexcept;
 
     // External-clock transport. Returns the number of emitted events.
@@ -77,8 +83,9 @@ public:
     void setCurrentPattern(int index);
 
 private:
-    int triggerStep(int stepIndex, const Pattern& pattern, Event* out) noexcept;
-    int releaseActiveNote(Event* out) noexcept;
+    int triggerStep(int stepIndex, const Pattern& pattern, Event* out,
+                    int offset = 0) noexcept;
+    int releaseActiveNote(Event* out, int offset = 0) noexcept;
     double stepSamples() const noexcept;
 
     void publishCurrentLocked() noexcept;

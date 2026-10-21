@@ -1,6 +1,7 @@
 #include "sequencer.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 
 namespace r303 {
@@ -102,10 +103,10 @@ double Sequencer::stepSamples() const noexcept {
     return sampleRate_ * 60.0 / effectiveTempo() / 4.0;
 }
 
-int Sequencer::releaseActiveNote(Event* out) noexcept {
+int Sequencer::releaseActiveNote(Event* out, int offset) noexcept {
     int count = 0;
-    if (activeNote_ >= 0) {
-        out[count++] = Event{false, activeNote_, 0};
+    if (activeNote_ >= 0 && out != nullptr) {
+        out[offset + count++] = Event{false, activeNote_, 0};
         activeNote_ = -1;
     }
     gateSamplesRemaining_ = 0.0;
@@ -113,7 +114,8 @@ int Sequencer::releaseActiveNote(Event* out) noexcept {
     return count;
 }
 
-int Sequencer::triggerStep(int stepIndex, const Pattern& pattern, Event* out) noexcept {
+int Sequencer::triggerStep(int stepIndex, const Pattern& pattern, Event* out,
+                           int offset) noexcept {
     int count = 0;
     const auto& step = pattern[stepIndex];
     const double fullStep = stepSamples();
@@ -124,10 +126,11 @@ int Sequencer::triggerStep(int stepIndex, const Pattern& pattern, Event* out) no
         fullStep * (evenStep ? (1.0 + swing * 0.5) : (1.0 - swing * 0.5));
     lastInterval_ = interval;
 
-    if (activeNote_ >= 0 && !heldBySlide_) count += releaseActiveNote(out);
+    if (activeNote_ >= 0 && !heldBySlide_)
+        count += releaseActiveNote(out, offset + count);
 
     if (!step.gate) {
-        count += releaseActiveNote(out);
+        count += releaseActiveNote(out, offset + count);
         return count;
     }
 
@@ -135,11 +138,14 @@ int Sequencer::triggerStep(int stepIndex, const Pattern& pattern, Event* out) no
     const int velocity = step.accent ? 110 : 80;
 
     if (activeNote_ >= 0) {
-        // Slide: the new note starts while the old one is still held.
-        out[count++] = Event{true, note, velocity};
-        out[count++] = Event{false, activeNote_, 0};
+        // Slide: the new note starts while the old one is still held. A slide
+        // into the same pitch is a tie: sending its own note-off would close
+        // the gate in the same block and swallow the note.
+        out[offset + count++] = Event{true, note, velocity};
+        if (activeNote_ != note)
+            out[offset + count++] = Event{false, activeNote_, 0};
     } else {
-        out[count++] = Event{true, note, velocity};
+        out[offset + count++] = Event{true, note, velocity};
     }
 
     activeNote_ = note;
@@ -152,7 +158,7 @@ int Sequencer::tick(Event* out) noexcept {
     int count = 0;
 
     if (resetRequested_.exchange(false, std::memory_order_acq_rel)) {
-        count += releaseActiveNote(out);
+        count += releaseActiveNote(out, count);
         samplesUntilStep_ = 0.0;
         nextStepIndex_ = 0;
         pulseCount_ = 0;
@@ -173,7 +179,7 @@ int Sequencer::tick(Event* out) noexcept {
                 activeNote_ = -1;
                 currentStep_.store(0, std::memory_order_relaxed);
             } else {
-                count += releaseActiveNote(out);
+                count += releaseActiveNote(out, count);
             }
         }
     }
@@ -184,7 +190,7 @@ int Sequencer::tick(Event* out) noexcept {
         const Pattern pattern = readPublishedPattern();
         const int length = clampi(pattern.length, 1, Pattern::kMaxSteps);
 
-        count += triggerStep(nextStepIndex_, pattern, out);
+        count += triggerStep(nextStepIndex_, pattern, out, count);
         currentStep_.store(nextStepIndex_, std::memory_order_relaxed);
         samplesUntilStep_ += std::max(1.0, lastInterval_ > 0.0 ? lastInterval_ : stepSamples());
 
@@ -196,10 +202,11 @@ int Sequencer::tick(Event* out) noexcept {
 
     if (!heldBySlide_ && gateSamplesRemaining_ > 0.0) {
         gateSamplesRemaining_ -= 1.0;
-        if (gateSamplesRemaining_ <= 0.0) count += releaseActiveNote(out);
+        if (gateSamplesRemaining_ <= 0.0) count += releaseActiveNote(out, count);
     }
 
     if (!external) samplesUntilStep_ -= 1.0;
+    assert(count <= kMaxEventsPerCall);
     return count;
 }
 
@@ -238,6 +245,7 @@ int Sequencer::clockPulse(Event* out, int64_t timestampNanos) noexcept {
         currentStep_.store(0, std::memory_order_relaxed);
         nextStepIndex_ = 1;
         pulseCount_ = 0;
+        assert(count <= kMaxEventsPerCall);
         return count;
     }
 
@@ -245,17 +253,18 @@ int Sequencer::clockPulse(Event* out, int64_t timestampNanos) noexcept {
     if (pulseCount_ % 6 == 0) {
         const Pattern pattern = readPublishedPattern();
         const int length = clampi(pattern.length, 1, Pattern::kMaxSteps);
-        count += triggerStep(nextStepIndex_, pattern, out);
+        count += triggerStep(nextStepIndex_, pattern, out, count);
         currentStep_.store(nextStepIndex_, std::memory_order_relaxed);
         nextStepIndex_ = (nextStepIndex_ + 1 >= length) ? 0 : nextStepIndex_ + 1;
     }
+    assert(count <= kMaxEventsPerCall);
     return count;
 }
 
 int Sequencer::midiStart(Event* out) noexcept {
     if (!externalClock_.load(std::memory_order_relaxed)) return 0;
 
-    int count = releaseActiveNote(out);
+    int count = releaseActiveNote(out, 0);
     running_.store(true, std::memory_order_relaxed);
     playRequested_.store(true, std::memory_order_relaxed);
     pulseCount_ = 0;
@@ -265,9 +274,10 @@ int Sequencer::midiStart(Event* out) noexcept {
     gateSamplesRemaining_ = 0.0;
 
     const Pattern pattern = readPublishedPattern();
-    count += triggerStep(0, pattern, out);
+    count += triggerStep(0, pattern, out, count);
     currentStep_.store(0, std::memory_order_relaxed);
     nextStepIndex_ = 1;
+    assert(count <= kMaxEventsPerCall);
     return count;
 }
 
@@ -277,6 +287,7 @@ int Sequencer::midiStop(Event* out) noexcept {
     int count = releaseActiveNote(out);
     nextStepIndex_ = 0;
     pulseCount_ = 0;
+    assert(count <= kMaxEventsPerCall);
     return count;
 }
 
