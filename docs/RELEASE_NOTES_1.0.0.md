@@ -22,8 +22,10 @@ rebuilt for touch, USB MIDI and low-latency Android audio.
 ## Verification
 
 - Host DSP suite: 206 checks passing.
-- Android unit tests: MIDI stream parser (4), UMP codec (6), preset file codec (4).
+- Android unit tests: MIDI stream parser (4), UMP codec (6), preset wire (3),
+  preset file codec (4) — 17 total.
 - Debug and release APKs built for `arm64-v8a` and `x86_64`.
+- GitHub Actions: host suite and Android job both green on `main` and on tag `1.0.0`.
 - Emulator verification: UI, playback, pattern edits, GEN/STORE persistence,
   skin switching and MIDI screen; AAudio stream started in shared mode.
 - Promo: 48 s 1080p video generated from real emulator screenshots and a
