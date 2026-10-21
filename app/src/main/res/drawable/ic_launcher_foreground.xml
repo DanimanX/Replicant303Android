@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Three aluminum knobs -->
+    <path
+        android:fillColor="#2C6642"
+        android:pathData="M30,34 a11,11 0 1 0 0.01,0z" />
+    <path
+        android:fillColor="#9BC9AA"
+        android:pathData="M30,34 a8,8 0 1 0 0.01,0z" />
+    <path
+        android:fillColor="#B7FF4B"
+        android:pathData="M30,25 h2 v9 h-2z" />
+    <path
+        android:fillColor="#2C6642"
+        android:pathData="M54,34 a11,11 0 1 0 0.01,0z" />
+    <path
+        android:fillColor="#9BC9AA"
+        android:pathData="M54,34 a8,8 0 1 0 0.01,0z" />
+    <path
+        android:fillColor="#B7FF4B"
+        android:pathData="M58,34 h9 v2 h-9z" />
+    <path
+        android:fillColor="#2C6642"
+        android:pathData="M78,34 a11,11 0 1 0 0.01,0z" />
+    <path
+        android:fillColor="#9BC9AA"
+        android:pathData="M78,34 a8,8 0 1 0 0.01,0z" />
+    <path
+        android:fillColor="#B7FF4B"
+        android:pathData="M78,25 h2 v9 h-2z" />
+
+    <!-- Saw wave -->
+    <path
+        android:fillColor="#B7FF4B"
+        android:pathData="M20,72 L34,56 L34,72 L48,56 L48,72 L62,56 L62,72 L76,56 L76,72 L90,56 L90,74 L20,74 Z" />
+
+    <!-- Step LEDs -->
+    <path android:fillColor="#B7FF4B" android:pathData="M24,82 h8 v6 h-8z" />
+    <path android:fillColor="#2C6642" android:pathData="M36,82 h8 v6 h-8z" />
+    <path android:fillColor="#B7FF4B" android:pathData="M48,82 h8 v6 h-8z" />
+    <path android:fillColor="#2C6642" android:pathData="M60,82 h8 v6 h-8z" />
+    <path android:fillColor="#B7FF4B" android:pathData="M72,82 h8 v6 h-8z" />
+</vector>
