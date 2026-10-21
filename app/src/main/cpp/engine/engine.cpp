@@ -15,7 +15,7 @@ void Synth303::prepare(double sampleRate) noexcept {
     filter_.prepare(sampleRate_);
     env_.prepare(sampleRate_);
     distortion_.prepare(sampleRate_);
-    noteStack_.reserve(8);
+    noteStack_.reserve(128);
     updateSlideCoefficient();
     reset();
 }
@@ -80,6 +80,7 @@ void Synth303::noteOn(int noteNumber, int velocity) noexcept {
 
     accentLedActive_ = isAccented;
     env_.noteOn(isAccented, isLegato);
+    if (noteStack_.size() >= 128) noteStack_.erase(noteStack_.begin());
     noteStack_.push_back(ActiveNote{noteNumber, velocity});
 }
 
