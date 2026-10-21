@@ -171,6 +171,9 @@ public:
     void getScope(float* out, int count) const;
     float meter() const;
     int sampleRate() const { return static_cast<int>(sampleRate_); }
+    // Test-only view of the voice note stack. It reads state owned by the
+    // audio thread, so it is only valid between process() calls, never from
+    // another thread: the UI uses getStatus()/meter() instead.
     int heldNotes() const { return synth_.heldNotes(); }
 
 private:
