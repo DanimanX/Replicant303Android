@@ -1,0 +1,15 @@
+{
+  "bpm": 140.000,
+  "sampleRate": 48000,
+  "duration": 58.2859,
+  "introEnd": 3.4286,
+  "barSeconds": 1.7143,
+  "sections": [
+    {"bank": 0, "slot": 23, "name": "Reactor Replicant", "start": 3.4286, "end": 12.0000},
+    {"bank": 1, "slot": 17, "name": "Neon Kernel", "start": 12.0000, "end": 20.5715},
+    {"bank": 3, "slot": 0, "name": "Acid Rain", "start": 20.5715, "end": 29.1430},
+    {"bank": 5, "slot": 16, "name": "Shadow Rain", "start": 29.1430, "end": 37.7144},
+    {"bank": 0, "slot": 13, "name": "Obsidian Oscillator", "start": 37.7144, "end": 46.2859},
+    {"bank": 7, "slot": 20, "name": "Mirror Factory", "start": 46.2859, "end": 54.8573}
+  ]
+}

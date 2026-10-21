@@ -23,3 +23,6 @@ target_link_libraries(r303_tests PRIVATE r303_core)
 
 add_executable(render_demo render_demo.cpp)
 target_link_libraries(render_demo PRIVATE r303_core)
+
+add_executable(render_track render_track.cpp)
+target_link_libraries(render_track PRIVATE r303_core)
