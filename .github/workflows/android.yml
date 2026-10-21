@@ -46,16 +46,7 @@ jobs:
             "ndk;27.0.12077973" \
             "cmake;3.22.1"
 
-      - name: Decode release keystore
-        if: ${{ secrets.REPLICANT_KEYSTORE_BASE64 != '' }}
-        run: echo "${{ secrets.REPLICANT_KEYSTORE_BASE64 }}" | base64 -d > release.jks
-
       - name: Build and test
-        env:
-          REPLICANT_KEYSTORE: ${{ secrets.REPLICANT_KEYSTORE_BASE64 != '' && 'release.jks' || '' }}
-          REPLICANT_KEYSTORE_PASSWORD: ${{ secrets.REPLICANT_KEYSTORE_PASSWORD }}
-          REPLICANT_KEY_ALIAS: ${{ secrets.REPLICANT_KEY_ALIAS }}
-          REPLICANT_KEY_PASSWORD: ${{ secrets.REPLICANT_KEY_PASSWORD }}
         run: |
           ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
 
