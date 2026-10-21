@@ -61,7 +61,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val written = withContext(Dispatchers.IO) {
                     runCatching {
                         getApplication<Application>().contentResolver
-                            .openOutputStream(uri, "wt")?.use { it.write(bytes) }
+                            .openOutputStream(uri, "w")?.use { it.write(bytes) }
                     }.isSuccess
                 }
                 if (written) "Exported ${PresetFileIO.suggestedFileName(preset)}"
