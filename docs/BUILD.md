@@ -38,16 +38,20 @@ cmake --build build-host -j
 
 The suite covers the pattern model, 16th clock, swing, accents, slides, external
 clock, MIDI clock output, CC mapping, preset generation, the preset wire format,
-engine preset loading and DSP stability. It exits non-zero on failure.
+engine preset loading, preset switching/reset release and DSP stability. It exits
+non-zero on failure.
 
-## Soundtrack renderer
+## Soundtrack renderers
 
 ```bash
 ./build-host/render_demo assets/replicant303_android_demo.wav 48 132
+./build-host/render_track assets/replicant303_promo_track.wav assets/replicant303_promo_track.json 140
 ```
 
-The renderer loads factory presets, keeps the transport running and applies a
-slow filter movement. The output is 48 kHz, 16-bit stereo.
+`render_demo` loads factory presets, keeps the transport running and applies a slow
+filter movement. `render_track` renders the six promo sections from the factory
+vault and writes a JSON manifest with the section boundaries so the video edit stays
+in sync with the music. Both write 48 kHz, 16-bit stereo.
 
 ## Promo video
 
@@ -56,6 +60,10 @@ Requires Python 3 with `numpy`, `Pillow`, `scipy` and `ffmpeg`.
 ```bash
 python3 tools/make_promo.py
 ```
+
+The edit needs `assets/replicant303_promo_track.wav` and its JSON manifest, so run
+`render_track` first (see above). Optionally refresh the screenshots with
+`tools/capture_screenshots.py` on a connected emulator or phone.
 
 It writes:
 

@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <em>▶ Watch the 1080p promo (48 s, English) — real emulator UI, with the acid line rendered by the native engine.</em>
+  <em>▶ Watch the 1080p promo (58 s, English) — real emulator UI, with the acid line rendered by the native engine.</em>
 </p>
 
 <p align="center">
@@ -229,21 +229,34 @@ cmake -S tools/host -B build-host -DCMAKE_BUILD_TYPE=Release
 cmake --build build-host -j
 ./build-host/r303_tests
 ./build-host/render_demo assets/replicant303_android_demo.wav 48 132
+./build-host/render_track assets/replicant303_promo_track.wav assets/replicant303_promo_track.json 140
 ```
 
-The host suite currently runs **206 checks** covering the factory patterns, clock,
+The host suite currently runs **236 checks** covering the factory patterns, clock,
 swing, accent/slide, external clock, preset generation and wire round-trips, engine
-preset loading, MIDI clock output, CC control and DSP stability at extreme settings.
+preset loading, preset switching and reset release, MIDI clock output, CC control
+and DSP stability at extreme settings.
 
 ### Promotional video
 
+The promo is cut from real emulator screenshots and a soundtrack rendered by the
+native engine from six factory presets. Regenerate it in three steps:
+
 ```bash
+# 1. Render the six presets with the host engine (140 BPM, section manifest).
+./build-host/render_track assets/replicant303_promo_track.wav assets/replicant303_promo_track.json 140
+
+# 2. Refresh the screenshots from a connected emulator or phone (optional).
+python3 tools/capture_screenshots.py
+
+# 3. Cut the video and the poster.
 python3 tools/make_promo.py
 ```
 
-The script uses the emulator screenshots in `screenshots/`, the engine-rendered
-`assets/replicant303_android_demo.wav`, and a procedural drum/pad bed. It writes
-`assets/replicant303_android_promo_1080p.mp4` and `assets/replicant303_android_poster.png`.
+`make_promo.py` uses the emulator screenshots in `screenshots/`, the engine track
+`assets/replicant303_promo_track.wav` and its section manifest, plus a procedural
+drum/pad bed. It writes `assets/replicant303_android_promo_1080p.mp4` (58 s,
+1920 × 1080, 30 fps, AAC stereo) and `assets/replicant303_android_poster.png`.
 
 ---
 
@@ -300,7 +313,7 @@ this format and plain MIDI patterns.
 
 `.github/workflows/android.yml` runs on every push and tag:
 
-- host build + 206-check regression suite,
+- host build + 236-check regression suite,
 - Android debug and release APK builds (`arm64-v8a`, `x86_64`),
 - unit tests for the MIDI parser, UMP codec and preset file codec,
 - on a version tag, uploads the signed release APK and attaches it to the GitHub release.
