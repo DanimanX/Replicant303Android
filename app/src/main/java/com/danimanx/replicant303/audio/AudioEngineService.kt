@@ -112,7 +112,7 @@ class AudioEngineService : Service() {
         }
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_engine)
-            .setContentTitle("Replicant 303")
+            .setContentTitle(getString(R.string.app_name))
             .setContentText(detail)
             .setSubText(if (state != null) "${state.presetName} · ${state.tempo.toInt()} BPM" else null)
             .setContentIntent(openIntent)

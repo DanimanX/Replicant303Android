@@ -17,3 +17,7 @@ local.properties
 .codewhale/
 
 dist/
+
+# Service account keys
+*.json
+!assets/replicant303_promo_track.json

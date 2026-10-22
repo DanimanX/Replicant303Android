@@ -1,0 +1,8 @@
+Replicant303 1.0.1
+
+- Virtual analog acid 303 DSP engine running at 48 kHz with AAudio low latency.
+- 16-step sequencer with slides, accents, and down/up octave shifts.
+- Built-in pattern vault and generative procedural acid mutate engine.
+- Full USB Host MIDI 1.0 and MIDI 2.0 (UMP) input, output, and MIDI clock.
+- Vector oscilloscope and responsive tactile 13-key keyboard.
+- 100% offline, zero ads, zero tracking.

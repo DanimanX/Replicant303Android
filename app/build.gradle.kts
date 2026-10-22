@@ -4,9 +4,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-// Version can be overridden by CI: -PreplicantVersionName=1.0.0 -PreplicantVersionCode=10000
-val replicantVersionName = (project.findProperty("replicantVersionName") as String?) ?: "1.0.0"
-val replicantVersionCode = ((project.findProperty("replicantVersionCode") as String?) ?: "10000").toInt()
+// Version can be overridden by CI: -PreplicantVersionName=1.0.1 -PreplicantVersionCode=10001
+val replicantVersionName = (project.findProperty("replicantVersionName") as String?) ?: "1.0.1"
+val replicantVersionCode = ((project.findProperty("replicantVersionCode") as String?) ?: "10001").toInt()
 
 // Release signing. CI supplies a keystore through environment variables; local
 // and unsigned builds fall back to the debug key so every release APK installs.
@@ -21,13 +21,13 @@ val hasReleaseSigning = releaseKeystore?.isFile == true &&
 
 android {
     namespace = "com.danimanx.replicant303"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "com.danimanx.replicant303"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = replicantVersionCode
         versionName = replicantVersionName
 
